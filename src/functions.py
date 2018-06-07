@@ -225,8 +225,8 @@ def plot_auc(folds):
     mean_tpr[-1] = 1.0
     mean_auc = auc(mean_fpr, mean_tpr)
     std_auc = np.std([i[2] for i in folds])
-    print mean_auc 
-    print std_auc
+    print(mean_auc) 
+    print(std_auc)
     plt.plot(mean_fpr, mean_tpr, color='b',
             label=r'Mean ROC (AUC = %0.2f $\pm$ %0.2f)' % (mean_auc, std_auc),
             lw=2, alpha=.8)

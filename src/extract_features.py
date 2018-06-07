@@ -5,9 +5,9 @@ import time
 import numpy as np
 import re
 import json
-import src.functions as func
-import nltk
 import functions as func
+import nltk
+import string
 from datetime import date, datetime, timedelta
 from collections import Counter
 
@@ -19,7 +19,7 @@ this script takes a very long time to run (~40 min), as the dataset is large, an
 ###==================================================
 ### Add parts of speech tagging for Kickstarter Names
 ###==================================================
-df = pd.read_csv('data/data_with_usd.csv')
+df = pd.read_csv('../data/imputed.csv')
 keep_cols = [x for x in df.columns if 'Unnamed' not in x]
 df = df[keep_cols]
 ## Extract name column from data and fill any Empty name columns with the string 'None'
@@ -32,7 +32,7 @@ df.loc[:,'name'] = df.loc[:,'name'].fillna('None')
 #   * the capital letter count normalized vs the letter count
 lett_count = names.apply(lambda x: len(re.sub('[^a-z]', '', x.lower())))
 word_count = names.apply(lambda x: len(re.findall("[a-z']+", x.lower())))
-punc_count = names.apply(lambda x: len(re.findall("[\p{P}\d]", x))) / lett_count
+punc_count = names.apply(lambda x: len([ch for ch in x if x in set(string.punctuation)])) / lett_count
 caps_count = names.apply(lambda x: len(re.findall("[A-Z]", x))) / lett_count
 ## split Kickstarter names into lists of words
 words = names.apply(lambda x: re.findall("[a-z']+", x.lower()))
@@ -41,7 +41,7 @@ words = names.apply(lambda x: re.findall("[a-z']+", x.lower()))
 ## then count how many of each parts of speech there is in each name
 parts_of_speech = words.apply(lambda x: nltk.pos_tag(x))
 just_pos = parts_of_speech.apply(lambda x: [i[1] for i in x])
-pos_counts = just_pos.apply(get_count)
+pos_counts = just_pos.apply(func.get_count)
 
 ## Count the ratio of
 #   * Possesives
@@ -70,19 +70,19 @@ df['name$preposition_count'] = preposition_count
 df['name$determinator_count'] = determinator_count
 
 ## Save updated dataframe as new file (not included in github due to file size constraints)
-df.to_csv('data/data_with_pos.csv')
+df.to_csv('../data/data_with_pos.csv')
 
 ###============================================
 ### Add dummy Columns for Catagorical Data
 ###============================================
-ndf = pd.read_csv('data/data_with_pos.csv')
+ndf = pd.read_csv('../data/data_with_pos.csv')
 keep_cols = [x for x in ndf.columns if 'Unnamed' not in x]
 ndf = ndf[keep_cols]
 
 ## For Each catagorical dataset, Create an additional column for each unique value within that dataset.
 ## Seperate the name of the original column from the dataset using a '&' character
-for cat in df['category'].unique():
-    ndf['category&{}'.format(cat)] = df['category'] == cat
+#for cat in df['category'].unique():
+#    ndf['category&{}'.format(cat)] = df['category'] == cat
 for cat in df['main_category'].unique():
     ndf['main_category&{}'.format(cat)] = df['main_category'] == cat
 for cat in df['country'].unique():
@@ -121,18 +121,18 @@ ndf.drop(['launched_month',
           'deadline'], axis=1, inplace=True)
 
 ## Save new dataframe (with all numerical and catagorical dummy variables) as new .csv -- not avaliable on github due to file size
-ndf.to_csv('data/data_with_dummies.csv')
+ndf.to_csv('../data/data_with_dummies.csv')
 
 
 ###============================================
 ### Create binary classification dataset
 ###============================================
-ndf = pd.read_csv('data/data_with_dummies.csv')
+ndf = pd.read_csv('../data/data_with_dummies.csv')
 ## Create new row 'success' where wither the amount pledged has exceeded the goal, or the 'state' is successful
-ndf['success'] = (ndf['state'] == 'successful') | (ndf['pledged'] > ndf['goal'])
+ndf['success'] = (ndf['state'] == 'successful') | (ndf['usd_pledged_real'] > ndf['usd_goal_real'])
 ## Drop the catagorical 'state' variable'
 ndf.drop('state', axis=1, inplace=True)
 keep_cols = [x for x in ndf.columns if 'Unnamed' not in x]
 ndf = ndf[keep_cols]
 ## Save as new .csv file (not avalible on github because file size is too large)
-ndf.to_csv('data/data_with_dummies_and_class.csv')
+ndf.to_csv('../data/data_with_dummies_and_class.csv')
